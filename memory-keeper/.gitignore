@@ -1,0 +1,23 @@
+# Ignore Python cache
+__pycache__/
+*.pyc
+
+# Ignore virtual environment
+venv/
+
+# Ignore Streamlit cache
+.streamlit/
+
+# Ignore generated PDFs and logs
+pdf/
+*.pdf
+*.log
+*.json
+
+# Ignore generated HTML files
+*.html
+data/*.html
+
+# Ignore OS/system files
+.DS_Store
+Thumbs.db
