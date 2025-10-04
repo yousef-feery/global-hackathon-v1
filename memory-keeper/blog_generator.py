@@ -1,8 +1,9 @@
 import os
 import json
 from datetime import datetime
-from weasyprint import HTML
 from dotenv import load_dotenv
+from weasyprint import HTML
+from reportlab.pdfgen import canvas  # Fallback if WeasyPrint fails
 
 load_dotenv()
 
@@ -17,7 +18,7 @@ try:
         genai.configure(api_key=API_KEY)
         GENEMINI_AVAILABLE = True
 except ImportError:
-    GENEMINI_AVAILABLE = False
+    pass
 
 try:
     import openai
@@ -26,7 +27,8 @@ try:
         openai.api_key = OPENAI_API_KEY
         OPENAI_AVAILABLE = True
 except ImportError:
-    OPENAI_AVAILABLE = False
+    pass
+
 
 def polish_story(question, answer, model=None):
     if not answer.strip():
@@ -38,14 +40,16 @@ def polish_story(question, answer, model=None):
     Story:
     """
     try:
-        # Gemini integration
-        if model is None:
+        if model is None and GENEMINI_AVAILABLE:
             model = genai.GenerativeModel("gemini-2.0-flash")
-        response = model.generate_content(prompt)
-        return response.text.strip()
+            response = model.generate_content(prompt)
+            return response.text.strip()
+        else:
+            return answer
     except Exception as e:
         print("Gemini error:", e)
         return answer
+
 
 def generate_blog(answers: dict) -> str:
     """Generate polished HTML blog with cover page and Table of Contents."""
@@ -87,8 +91,9 @@ li {{ margin-bottom: 5px; }}
     blog += "</body></html>"
     return blog
 
+
 def export_pdf(html_content: str, directory="pdf") -> str:
-    """Export HTML content to PDF in a dedicated folder with timestamp and log."""
+    """Export blog to PDF with fallback if WeasyPrint fails."""
     if not os.path.exists(directory):
         os.makedirs(directory)
 
@@ -96,13 +101,23 @@ def export_pdf(html_content: str, directory="pdf") -> str:
     filename = f"memory_blog_{timestamp}.pdf"
     filepath = os.path.join(directory, filename)
 
-    # Generate PDF
-    HTML(string=html_content).write_pdf(filepath)
+    try:
+        # Try WeasyPrint first
+        HTML(string=html_content).write_pdf(filepath)
+    except Exception as e:
+        print("WeasyPrint failed, falling back to ReportLab:", e)
+        # Fallback to simple text PDF
+        c = canvas.Canvas(filepath)
+        textobject = c.beginText(40, 800)
+        textobject.setFont("Times-Roman", 12)
+        for line in html_content.splitlines():
+            textobject.textLine(line)
+        c.drawText(textobject)
+        c.showPage()
+        c.save()
 
-    # Log generated PDFs
+    # Log PDFs
     log_file = os.path.join(directory, "pdf_log.json")
-
-    # Safe load JSON
     log = []
     if os.path.exists(log_file):
         try:
@@ -110,16 +125,13 @@ def export_pdf(html_content: str, directory="pdf") -> str:
                 log = json.load(f)
         except json.JSONDecodeError:
             log = []
-
-    # Save preview (first 50 chars)
     preview = "".join(html_content.splitlines())[:50]
     log.append({
         "filename": filename,
         "generated_at": datetime.now().isoformat(),
         "preview": preview
     })
-
     with open(log_file, "w") as f:
         json.dump(log, f, indent=4)
 
-    return filepath  # ✅ must be inside the function
+    return filepath
