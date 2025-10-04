@@ -47,11 +47,9 @@ if st.button("💾 Save My Answers"):
     st.success("✅ Answers saved!")
 
 # ===== Generate Blog =====
+# Generate PDF and show previous PDFs
 if st.button("📝 Generate Memory Blog with AI"):
-    # Generate HTML blog
     blog_html = generate_blog(answers)
-
-    # Preview in Streamlit
     st.components.v1.html(blog_html, height=500, scrolling=True)
 
     # Download HTML
@@ -62,15 +60,37 @@ if st.button("📝 Generate Memory Blog with AI"):
         mime="text/html"
     )
 
-    # Generate PDF and download
+    # Generate PDF
     pdf_file = export_pdf(blog_html)
     with open(pdf_file, "rb") as f:
         st.download_button(
             "⬇️ Download Blog (PDF)",
             data=f,
-            file_name="memory_blog.pdf",
+            file_name=os.path.basename(pdf_file),
             mime="application/pdf"
         )
+
+    st.success(f"PDF saved in {pdf_file}")
+
+# List all previously generated PDFs
+st.subheader("📂 Previously Generated PDFs")
+pdf_dir = "pdf"
+log_file = os.path.join(pdf_dir, "pdf_log.json")
+if os.path.exists(log_file):
+    with open(log_file, "r") as f:
+        logs = json.load(f)
+    for entry in reversed(logs):
+        file_path = os.path.join(pdf_dir, entry["filename"])
+        if os.path.exists(file_path):
+            with open(file_path, "rb") as f:
+                st.download_button(
+                    f"⬇️ {entry['filename']} ({entry['generated_at'][:16]})",
+                    data=f,
+                    file_name=entry["filename"],
+                    mime="application/pdf"
+                )
+else:
+    st.info("No PDFs generated yet.")
 
 # ===== Text-to-Speech =====
 if st.button("🔊 Read My Memories"):
