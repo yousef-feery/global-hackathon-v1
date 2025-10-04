@@ -30,6 +30,7 @@ else:
     answers = {}
 
 # ===== CHAT INTERFACE =====
+st.subheader("✍️ Share Your Memories")
 for i, q in enumerate(QUESTIONS):
     answer = st.text_area(f"Q{i+1}: {q}", value=answers.get(q, ""), height=100)
     answers[q] = answer
@@ -41,13 +42,15 @@ if st.button("💾 Save My Answers"):
     st.success("✅ Answers saved!")
 
 # ===== GENERATE BLOG =====
-if st.button("📝 Generate Memory Blog"):
+if st.button("📝 Generate Memory Blog with AI"):
     blog_html = generate_blog(answers)
     blog_file = f"data/memory_blog_{datetime.now().strftime('%Y%m%d_%H%M')}.html"
     with open(blog_file, "w") as f:
         f.write(blog_html)
+
     st.download_button("⬇️ Download Blog (HTML)", data=blog_html, file_name="memory_blog.html", mime="text/html")
-    st.success("✅ Blog generated!")
+    st.components.v1.html(blog_html, height=500, scrolling=True)
+    st.success("✅ AI-enhanced blog generated!")
 
 # ===== TEXT TO SPEECH =====
 if st.button("🔊 Read My Memories"):
