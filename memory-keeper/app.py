@@ -36,7 +36,7 @@ else:
     answers = {}
 
 # ===== Chat Interface =====
-st.subheader("✍️ Share Your Memories")
+st.subheader("✍ Share Your Memories")
 for i, q in enumerate(QUESTIONS):
     answers[q] = st.text_area(f"Q{i+1}: {q}", value=answers.get(q, ""), height=100)
 
@@ -47,32 +47,32 @@ if st.button("💾 Save My Answers"):
     st.success("✅ Answers saved!")
 
 # ===== Generate Blog =====
-# Generate PDF and show previous PDFs
 if st.button("📝 Generate Memory Blog with AI"):
     blog_html = generate_blog(answers)
     st.components.v1.html(blog_html, height=500, scrolling=True)
 
     # Download HTML
     st.download_button(
-        "⬇️ Download Blog (HTML)",
+        "⬇ Download Blog (HTML)",
         data=blog_html,
         file_name="memory_blog.html",
         mime="text/html"
     )
 
-    # Generate PDF
+    # Generate PDF safely
     pdf_file = export_pdf(blog_html)
-    with open(pdf_file, "rb") as f:
-        st.download_button(
-            "⬇️ Download Blog (PDF)",
-            data=f,
-            file_name=os.path.basename(pdf_file),
-            mime="application/pdf"
-        )
+    if pdf_file and os.path.exists(pdf_file):
+        with open(pdf_file, "rb") as f:
+            st.download_button(
+                "⬇ Download Blog (PDF)",
+                f,
+                file_name=os.path.basename(pdf_file),
+                mime="application/pdf"
+            )
+    else:
+        st.error("⚠️ PDF generation failed.")
 
-    st.success(f"PDF saved in {pdf_file}")
-
-# List all previously generated PDFs
+# ===== Show old PDFs =====
 st.subheader("📂 Previously Generated PDFs")
 pdf_dir = "pdf"
 log_file = os.path.join(pdf_dir, "pdf_log.json")
@@ -84,8 +84,8 @@ if os.path.exists(log_file):
         if os.path.exists(file_path):
             with open(file_path, "rb") as f:
                 st.download_button(
-                    f"⬇️ {entry['filename']} ({entry['generated_at'][:16]})",
-                    data=f,
+                    f"⬇ {entry['filename']} ({entry['generated_at'][:16]})",
+                    f,
                     file_name=entry["filename"],
                     mime="application/pdf"
                 )
